@@ -18,10 +18,6 @@ The demo exercises the full buffer-aware pub/sub pipeline:
 From the workspace root:
 
 ```bash
-# Build the CUDA backend first (torch_buffer needs it installed)
-pixi run build cuda_buffer_backend
-
-# Build the demo and all remaining dependencies
 pixi run build tunnel_demo
 ```
 

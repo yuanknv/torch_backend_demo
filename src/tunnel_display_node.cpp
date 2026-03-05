@@ -1,3 +1,19 @@
+// Copyright 2026 NVIDIA Corporation
+// Licensed under the Apache License, Version 2.0
+
+// Tunnel display node -- subscribes to tunnel frames and renders them.
+//
+// In OpenGL mode (default), frames are displayed in a GLFW window via
+// CUDA-OpenGL interop: the received tensor is copied into a PBO that is
+// mapped as a CUDA resource, avoiding any GPU-to-CPU round-trip.
+//
+// In headless mode (parameter headless:=true), the node skips rendering
+// but still measures and publishes FPS and end-to-end latency for
+// benchmarking.
+//
+// The window and GL resources are dynamically resized when the incoming
+// image dimensions change.
+
 #include <torch/torch.h>
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
@@ -28,6 +44,7 @@
 static constexpr int DEFAULT_WIDTH  = 1280;
 static constexpr int DEFAULT_HEIGHT = 720;
 
+// OpenGL 3.3 core-profile function pointers loaded at runtime via glX
 #define DECL_GL(ret, name, ...) static ret (APIENTRY *name)(__VA_ARGS__) = nullptr;
 DECL_GL(GLuint, pglCreateShader,  GLenum)
 DECL_GL(void,   pglShaderSource,  GLuint, GLsizei, const GLchar**, const GLint*)
@@ -63,6 +80,7 @@ static void loadGLFunctions()
 }
 #undef LOAD_GL
 
+// Minimal fullscreen-quad shaders for texture display
 static const char* vs_src = "#version 330 core\n"
   "layout(location=0) in vec2 pos; out vec2 uv;"
   "void main() { gl_Position = vec4(pos, 0, 1); uv = pos*0.5+0.5; }";
@@ -173,6 +191,7 @@ private:
     return true;
   }
 
+  // (Re)allocate PBO, CUDA-GL registration, and texture for the given size.
   void setup_gl_resources(int w, int h)
   {
     if (cuda_pbo_) {
@@ -206,6 +225,7 @@ private:
     if (glfwWindowShouldClose(win_)) rclcpp::shutdown();
   }
 
+  // Copy tensor data into the PBO via CUDA, then blit to the GL texture.
   void display_frame(const at::Tensor & tensor, int w, int h)
   {
     const size_t frame_bytes = static_cast<size_t>(w) * h * 3;
@@ -246,6 +266,7 @@ private:
     int w = static_cast<int>(msg->width);
     int h = static_cast<int>(msg->height);
 
+    // Resize GL resources if the publisher changed resolution
     if (gl_ready_ && (w != img_width_ || h != img_height_)) {
       img_width_ = w;
       img_height_ = h;

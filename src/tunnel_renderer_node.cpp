@@ -1,3 +1,14 @@
+// Copyright 2026 NVIDIA Corporation
+// Licensed under the Apache License, Version 2.0
+
+// Tunnel renderer node -- publishes animated tunnel frames as sensor_msgs/Image.
+//
+// Supports two transport modes selected via the 'use_cuda' parameter:
+//   cuda: allocates a CUDA buffer via torch_buffer_backend and renders directly
+//         into it.  The subscriber receives a zero-copy CUDA IPC handle.
+//   cpu:  renders on the GPU, copies to host, and writes into a CPU buffer.
+//         The subscriber receives a standard byte-array message.
+
 #include <torch/torch.h>
 #include <c10/cuda/CUDAStream.h>
 #include <cuda_runtime.h>
@@ -50,6 +61,7 @@ private:
         cb_start - last_cb_end_).count();
     }
 
+    // Use a dedicated CUDA stream for all buffer and kernel operations
     auto guard = torch_buffer_backend::set_stream();
     c10::DeviceType transport = use_cuda_ ? c10::kCUDA : c10::kCPU;
 
@@ -74,10 +86,12 @@ private:
 
     auto t_kernel = std::chrono::steady_clock::now();
     if (use_cuda_) {
+      // CUDA path: render directly into the buffer-backed tensor (zero-copy)
       at::Tensor output = torch_buffer_backend::from_buffer(msg.data);
       cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
       launch_tunnel_effect(output.data_ptr<unsigned char>(), width_, height_, t, stream);
     } else {
+      // CPU path: render on GPU, then copy to host buffer
       at::Tensor gpu_frame = torch::empty({height_, width_, 3},
         torch::TensorOptions().dtype(torch::kByte).device(torch::kCUDA));
       cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
