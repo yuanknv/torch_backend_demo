@@ -59,7 +59,17 @@ pixi run test tunnel_demo --tests_to_run test_tunnel_demo_launch
 
 ## Benchmark results
 
-Measured on a single machine (inter-process, rmw_zenoh_cpp, headless mode).
+Measured on a single machine (inter-process, rmw_zenoh_cpp, headless mode):
+
+- **GPU**: NVIDIA GeForce RTX 3090 (24 GB)
+- **CPU**: Intel Core i9-10850K @ 3.60 GHz
+- **RMW**: rmw_zenoh_cpp
+
+To reproduce, build the workspace and run:
+
+```bash
+pixi run bash src/tunnel_demo/launch/bench_all.sh
+```
 
 ### Moving objects scene
 
