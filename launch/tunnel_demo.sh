@@ -4,13 +4,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS_ROOT="${PIXI_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../../../.." && pwd)}"
 
-# Default parameters
-WIDTH=2560
-HEIGHT=1440
+# Default parameters (1080p for testing)
+WIDTH=1920
+HEIGHT=1080
 BACKEND="cuda"
 PUBLISH_RATE=4
 RECORD_PATH=""
-SCENE="moving_objects"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -35,19 +34,14 @@ while [[ $# -gt 0 ]]; do
             RECORD_PATH="$2"
             shift 2
             ;;
-        --scene)
-            SCENE="$2"
-            shift 2
-            ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
-            echo "  --width WIDTH         Image width (default: 1920)"
+            echo "  --width WIDTH         Image width (default: 1920 for 1080p)"
             echo "  --height HEIGHT       Image height (default: 1080)"
             echo "  --backend BACKEND     cuda or cpu (default: cuda)"
             echo "  --rate RATE_MS        Publish rate in ms (default: 1)"
             echo "  --record PATH         Record video to MP4 file (requires ffmpeg)"
-            echo "  --scene SCENE         Render scene: moving_objects or tunnel (default: moving_objects)"
             echo "  --help                Show this help message"
             exit 0
             ;;
@@ -82,30 +76,34 @@ RENDERER="$WS_ROOT/build/tunnel_demo/tunnel_renderer_node"
 DISPLAY_NODE="$WS_ROOT/build/tunnel_demo/tunnel_display_node"
 
 cleanup() {
-    # Send SIGINT so rclcpp shuts down gracefully (destructors run, ffmpeg finalizes)
     kill -INT $DISPLAY_PID $RENDERER_PID 2>/dev/null
     wait $DISPLAY_PID $RENDERER_PID 2>/dev/null
-    kill $ZENOH_PID 2>/dev/null
-    wait $ZENOH_PID 2>/dev/null
+    if [[ -n "${ZENOH_PID:-}" ]]; then
+        kill $ZENOH_PID 2>/dev/null
+        wait $ZENOH_PID 2>/dev/null
+    fi
 }
 trap cleanup EXIT INT TERM
 
-echo "Starting zenoh router..."
-$ZENOHD &
-ZENOH_PID=$!
-sleep 1
+ZENOH_PID=""
+if ss -tlnH 2>/dev/null | grep -q ':7447 '; then
+    echo "Zenoh router already on 7447, reusing it."
+else
+    echo "Starting zenoh router..."
+    $ZENOHD &
+    ZENOH_PID=$!
+    sleep 1
+fi
 
 echo "Starting tunnel renderer (publisher)..."
 echo "  Resolution: ${WIDTH}x${HEIGHT}"
 echo "  Backend: $BACKEND"
-echo "  Scene: $SCENE"
 echo "  Rate: ${PUBLISH_RATE}ms"
 $RENDERER --ros-args \
     -p image_width:=$WIDTH \
     -p image_height:=$HEIGHT \
     -p use_cuda:=$USE_CUDA \
-    -p publish_rate_ms:=$PUBLISH_RATE \
-    -p scene:=$SCENE &
+    -p publish_rate_ms:=$PUBLISH_RATE &
 RENDERER_PID=$!
 
 DISPLAY_ARGS=""

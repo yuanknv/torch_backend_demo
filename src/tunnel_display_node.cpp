@@ -250,18 +250,26 @@ private:
   }
 
   // Copy tensor data into the PBO via CUDA, then blit to the GL texture.
-  // All CUDA operations use the current stream set by the StreamGuard
-  // so they properly synchronize with the buffer read handle.
+  // Row-by-row copy using tensor stride so padded rows don't corrupt top/bottom.
   void display_frame(const at::Tensor & tensor, int w, int h)
   {
-    const size_t frame_bytes = static_cast<size_t>(w) * h * 3;
+    const size_t row_bytes = static_cast<size_t>(w) * 3;
+    const size_t frame_bytes = row_bytes * h;
+    int64_t row_stride = tensor.dim() == 3 ? tensor.stride(0) : static_cast<int64_t>(row_bytes);
     cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
     cudaGraphicsMapResources(1, &cuda_pbo_, stream);
     void* d_pbo = nullptr;
     size_t sz = 0;
     cudaGraphicsResourceGetMappedPointer(&d_pbo, &sz, cuda_pbo_);
     auto kind = tensor.is_cuda() ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice;
-    cudaMemcpyAsync(d_pbo, tensor.data_ptr(), frame_bytes, kind, stream);
+    if (row_stride == static_cast<int64_t>(row_bytes)) {
+      cudaMemcpyAsync(d_pbo, tensor.data_ptr(), frame_bytes, kind, stream);
+    } else {
+      for (int r = 0; r < h; r++) {
+        const void* src = reinterpret_cast<const char*>(tensor.data_ptr()) + r * row_stride;
+        cudaMemcpyAsync(reinterpret_cast<char*>(d_pbo) + r * row_bytes, src, row_bytes, kind, stream);
+      }
+    }
     cudaGraphicsUnmapResources(1, &cuda_pbo_, stream);
     cudaStreamSynchronize(stream);
 
@@ -281,10 +289,6 @@ private:
     glfwSwapBuffers(win_);
   }
 
-  // Pipe raw RGB frames to ffmpeg for MP4 recording.
-  // Throttled to 60 fps to avoid D2H copy overhead on every frame.
-  // The ffmpeg subprocess is spawned lazily on the first frame so the
-  // actual resolution is known.
   void record_frame(const at::Tensor & tensor, int w, int h)
   {
     auto now = std::chrono::steady_clock::now();

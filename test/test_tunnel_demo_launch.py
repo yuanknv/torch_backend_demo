@@ -23,8 +23,8 @@ from std_msgs.msg import Float64, UInt32
 @pytest.mark.launch_test
 @launch_testing.markers.keep_alive
 def generate_test_description():
-    width_arg = DeclareLaunchArgument('width', default_value='2560')
-    height_arg = DeclareLaunchArgument('height', default_value='1440')
+    width_arg = DeclareLaunchArgument('width', default_value='1920')
+    height_arg = DeclareLaunchArgument('height', default_value='1080')
     use_cuda_arg = DeclareLaunchArgument('use_cuda', default_value='true')
 
     renderer_node = Node(

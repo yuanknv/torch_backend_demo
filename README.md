@@ -1,16 +1,11 @@
 # tunnel_demo
 
-A ROS 2 demo that renders animated GPU scenes, publishes frames via the `torch_buffer_backend` zero-copy transport, and displays them in a GLFW window using CUDA-OpenGL interop.
+A ROS 2 demo that renders an animated neon-ring tunnel on the GPU via LibTorch tensor ops, publishes frames through the `torch_buffer_backend` zero-copy transport, and displays them in a GLFW window using CUDA-OpenGL interop.
 
 The demo exercises the full buffer-aware pub/sub pipeline:
 
-1. **tunnel_renderer_node** -- renders RGB frames on the GPU and publishes them as `sensor_msgs/msg/Image` using either CUDA IPC (zero-copy) or CPU (memcpy) transport.
+1. **tunnel_renderer_node** -- renders RGB frames on the GPU using pure LibTorch tensor operations and publishes them as `sensor_msgs/msg/Image` using either CUDA IPC (zero-copy) or CPU (memcpy) transport.
 2. **tunnel_display_node** -- subscribes, displays frames in an OpenGL window (or runs headless), and publishes FPS / end-to-end latency metrics.
-
-Two render scenes are available:
-
-- **moving_objects** (default) -- a raymarched SDF scene with orbiting spheres, a rotating torus, and a bouncing box above a checkerboard ground plane. GPU-heavy.
-- **tunnel** -- a neon-ring tunnel effect with wall illumination, depth fog, and procedural textures. Medium GPU load.
 
 ## Dependencies
 
@@ -35,11 +30,10 @@ pixi run bash src/tunnel_demo/launch/tunnel_demo.sh
 Options:
 
 ```
---width WIDTH       Image width (default: 2560)
---height HEIGHT     Image height (default: 1440)
+--width WIDTH       Image width (default: 1920)
+--height HEIGHT     Image height (default: 1080)
 --backend BACKEND   cuda or cpu (default: cuda)
---rate RATE_MS      Publish timer period in ms (default: 1)
---scene SCENE       Render scene: moving_objects or tunnel (default: moving_objects)
+--rate RATE_MS      Publish timer period in ms (default: 4)
 --record PATH       Record video to MP4 file (requires ffmpeg)
 ```
 
@@ -50,12 +44,6 @@ pixi run test tunnel_demo
 ```
 
 The launch test spins up both nodes in headless mode for 12 seconds and asserts that frames are received with measured FPS and end-to-end latency.
-
-Pass custom resolution/backend via launch args:
-
-```bash
-pixi run test tunnel_demo --tests_to_run test_tunnel_demo_launch
-```
 
 ## Benchmark results
 
@@ -71,29 +59,16 @@ To reproduce, build the workspace and run:
 pixi run bash src/tunnel_demo/launch/bench_all.sh
 ```
 
-### Moving objects scene
-
-| Resolution | Image Size | Transport | FPS | Latency mean |
+| Resolution | Image Size | Transport | FPS | Speedup |
 |---|---|---|---:|---:|
-| 1920x1080 | 6.2 MB | CUDA | 100.5 | 21.5 ms |
-| 1920x1080 | 6.2 MB | CPU | 59.9 | 30.1 ms |
-| 2560x1440 | 11.1 MB | CUDA | 67.0 | 22.3 ms |
-| 2560x1440 | 11.1 MB | CPU | 27.2 | 109.7 ms |
-| 6144x3160 | 58.2 MB | CUDA | 13.4 | 81.2 ms |
-| 6144x3160 | 58.2 MB | CPU | 3.6 | 510.4 ms |
+| 1280x720 | 2.8 MB | CUDA | 103.3 | 31x |
+| 1280x720 | 2.8 MB | CPU | 3.3 | -- |
+| 1920x1080 | 6.2 MB | CUDA | 101.1 | 53x |
+| 1920x1080 | 6.2 MB | CPU | 1.9 | -- |
+| 2560x1440 | 11.1 MB | CUDA | 73.0 | 73x |
+| 2560x1440 | 11.1 MB | CPU | 1.0 | -- |
 
-### Tunnel effect scene
-
-| Resolution | Image Size | Transport | FPS | Latency mean |
-|---|---|---|---:|---:|
-| 1920x1080 | 6.2 MB | CUDA | 99.8 | 88.0 ms |
-| 1920x1080 | 6.2 MB | CPU | 59.3 | 47.6 ms |
-| 2560x1440 | 11.1 MB | CUDA | 97.7 | 86.9 ms |
-| 2560x1440 | 11.1 MB | CPU | 25.2 | 116.2 ms |
-| 6144x3160 | 58.2 MB | CUDA | 100.7 | 27.8 ms |
-| 6144x3160 | 58.2 MB | CPU | 4.4 | 640.4 ms |
-
-At high resolutions the FPS gap between CUDA and CPU transport widens significantly. The moving objects scene is GPU-bound (raymarching cost scales with resolution), while the tunnel scene is lighter so CUDA transport maintains ~100 FPS even at 6K. CPU transport drops to single digits at 6K due to the ~58 MB per-frame memcpy overhead.
+The CUDA-vs-CPU speedup grows with resolution because the zero-copy transport cost is constant while CPU memcpy scales linearly with image size. At 2K the CUDA backend is 73x faster than CPU. The absolute CUDA FPS is bounded by the GPU render time (LibTorch tensor ops), which scales with pixel count.
 
 ## License
 

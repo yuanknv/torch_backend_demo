@@ -14,28 +14,31 @@ DISPLAY_NODE="$WS_ROOT/build/tunnel_demo/tunnel_display_node"
 
 RUN_SECONDS=15
 
-SCENES="moving_objects tunnel"
 BACKENDS="cuda cpu"
-RESOLUTIONS="1920x1080 2560x1440 6144x3160"
+RESOLUTIONS="1280x720 1920x1080 2560x1440"
 
 run_bench() {
-    local scene=$1 backend=$2 width=$3 height=$4
+    local backend=$1 width=$2 height=$3
     local use_cuda="true"
     [[ "$backend" == "cpu" ]] && use_cuda="false"
 
     local logfile
     logfile=$(mktemp /tmp/bench_display_XXXXXX.log)
 
-    $ZENOHD > /dev/null 2>&1 &
-    local zpid=$!
-    sleep 1
+    ZENOH_PID=""
+    if ss -tlnH 2>/dev/null | grep -q ':7447 '; then
+        : # reuse existing router
+    else
+        $ZENOHD > /dev/null 2>&1 &
+        ZENOH_PID=$!
+        sleep 1
+    fi
 
     $RENDERER --ros-args \
         -p image_width:=$width \
         -p image_height:=$height \
         -p use_cuda:=$use_cuda \
-        -p publish_rate_ms:=1 \
-        -p scene:=$scene > /dev/null 2>&1 &
+        -p publish_rate_ms:=1 > /dev/null 2>&1 &
     local rpid=$!
 
     $DISPLAY_NODE --ros-args -p headless:=true > "$logfile" 2>&1 &
@@ -45,8 +48,10 @@ run_bench() {
 
     kill -INT $dpid $rpid 2>/dev/null || true
     wait $dpid $rpid 2>/dev/null || true
-    kill $zpid 2>/dev/null || true
-    wait $zpid 2>/dev/null || true
+    if [[ -n "$ZENOH_PID" ]]; then
+        kill $ZENOH_PID 2>/dev/null || true
+        wait $ZENOH_PID 2>/dev/null || true
+    fi
 
     local last_line
     last_line=$(grep "Display:" "$logfile" | tail -1)
@@ -54,18 +59,16 @@ run_bench() {
     fps=$(echo "$last_line" | grep -oP '[\d.]+(?= fps)')
     latency=$(echo "$last_line" | grep -oP 'latency: \K[\d.]+')
 
-    echo "$scene|${width}x${height}|$backend|$fps|$latency"
+    echo "${width}x${height}|$backend|$fps|$latency"
     rm -f "$logfile"
     sleep 2
 }
 
-echo "scene|resolution|transport|fps|latency_ms"
-for scene in $SCENES; do
-    for res in $RESOLUTIONS; do
-        width=${res%x*}
-        height=${res#*x}
-        for backend in $BACKENDS; do
-            run_bench "$scene" "$backend" "$width" "$height"
-        done
+echo "resolution|transport|fps|latency_ms"
+for res in $RESOLUTIONS; do
+    width=${res%x*}
+    height=${res#*x}
+    for backend in $BACKENDS; do
+        run_bench "$backend" "$width" "$height"
     done
 done
