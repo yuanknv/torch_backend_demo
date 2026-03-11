@@ -51,10 +51,15 @@ find_package(std_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(launch_testing_ament_cmake REQUIRED)
 find_package(OpenGL REQUIRED)
-find_library(GLFW_LIBRARY glfw PATHS /usr/lib/x86_64-linux-gnu /usr/local/lib)
+find_package(SDL2 REQUIRED)
+find_package(GLEW REQUIRED)
 
-# Renderer node (publisher) -- pure LibTorch tensor ops, no custom CUDA kernels
-add_library(tunnel_renderer_component SHARED src/tunnel_renderer_node.cpp)
+# Renderer node (publisher) -- RobotArmRenderer + font, LibTorch tensor ops
+add_library(tunnel_renderer_component SHARED
+  src/tunnel_renderer_node.cpp
+  src/robot_arm.cpp
+  src/font.cpp
+)
 target_link_libraries(tunnel_renderer_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
@@ -66,6 +71,7 @@ target_link_libraries(tunnel_renderer_component
   CUDA::cudart
   CUDA::cuda_driver
 )
+target_compile_options(tunnel_renderer_component PRIVATE ${TORCH_CXX_FLAGS})
 rclcpp_components_register_node(tunnel_renderer_component
   PLUGIN "TunnelRenderer"
   EXECUTABLE tunnel_renderer_node
@@ -76,8 +82,12 @@ install(TARGETS tunnel_renderer_component
   RUNTIME DESTINATION bin
 )
 
-# Display node (subscriber, OpenGL + headless fallback)
-add_library(tunnel_display_component SHARED src/tunnel_display_node.cpp)
+# Display node (subscriber, SDL2/GLEW/OpenGL + CUDA-GL interop)
+add_library(tunnel_display_component SHARED
+  src/tunnel_display_node.cpp
+  src/display.cpp
+)
+target_compile_definitions(tunnel_display_component PRIVATE USE_CUDA_GL_INTEROP)
 target_link_libraries(tunnel_display_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
@@ -90,8 +100,10 @@ target_link_libraries(tunnel_display_component
   CUDA::cudart
   CUDA::cuda_driver
   OpenGL::GL
-  ${GLFW_LIBRARY}
+  SDL2::SDL2
+  GLEW::GLEW
 )
+target_compile_options(tunnel_display_component PRIVATE ${TORCH_CXX_FLAGS})
 rclcpp_components_register_node(tunnel_display_component
   PLUGIN "TunnelDisplay"
   EXECUTABLE tunnel_display_node
