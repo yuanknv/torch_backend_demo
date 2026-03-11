@@ -356,7 +356,7 @@ private:
 
     auto guard = torch_buffer_backend::set_stream();
     auto t0 = std::chrono::steady_clock::now();
-    const rcl_buffer::Buffer<uint8_t> & data = msg->data;
+    const rosidl::Buffer<uint8_t> & data = msg->data;
     at::Tensor tensor = torch_buffer_backend::from_buffer(data);
     auto t1 = std::chrono::steady_clock::now();
 

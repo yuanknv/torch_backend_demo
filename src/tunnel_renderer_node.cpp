@@ -27,8 +27,8 @@
 static constexpr float RING_SPACING  = 4.0f;
 static constexpr float RING_RADIUS   = 1.8f;
 static constexpr float TUBE_WIDTH    = 0.08f;
-static constexpr float CAM_SPEED     = 2.5f;
-static constexpr float COLOR_SCROLL  = 0.18f;
+static constexpr float CAM_SPEED     = 5.0f;
+static constexpr float COLOR_SCROLL  = 0.35f;
 static constexpr float HUE_STEP      = 0.12f;
 static constexpr int   RINGS_VISIBLE = 16;
 static constexpr float FOV_Y         = 1.05f;
@@ -54,8 +54,8 @@ static RGB hsv2rgb(float h, float s, float v)
 }
 
 struct RayGrid {
-    torch::Tensor inv_rdz;   // planeZ / rdz precomputable as planeZ * inv_rdz
-    torch::Tensor rdx_over_rdz, rdy_over_rdz;  // rdx/rdz, rdy/rdz for hit calc
+    torch::Tensor inv_rdz;
+    torch::Tensor rdx_over_rdz, rdy_over_rdz;
     torch::Tensor vignette;
     int W = 0, H = 0;
 };
@@ -88,7 +88,6 @@ static at::Tensor renderTunnel(const RayGrid& rg, float time)
     const float camZ    = time * CAM_SPEED;
     const int   baseIdx = static_cast<int>(std::floor(camZ / RING_SPACING));
     const float inv_tw2 = 1.f / (TUBE_WIDTH * TUBE_WIDTH);
-    const float rr2     = RING_RADIUS * RING_RADIUS;
 
     for (int di = -2; di < RINGS_VISIBLE; ++di) {
         const int   ringIdx    = baseIdx + di;
