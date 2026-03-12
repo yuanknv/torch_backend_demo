@@ -13,7 +13,8 @@ public:
     ~FrameDisplay();
 
     bool init(int width, int height, bool headless, bool use_cuda, bool fullscreen = false,
-              int max_win_w = 0, int max_win_h = 0);
+              int max_win_w = 0, int max_win_h = 0,
+              int win_x = -1, int win_y = -1);
     void present(const torch::Tensor& frame);
     bool poll_events(); // returns false if quit requested
 

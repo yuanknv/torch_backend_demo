@@ -15,10 +15,20 @@ DISPLAY_NODE="$WS_ROOT/build/torch_backend_demo/display_node"
 RUN_SECONDS=15
 
 BACKENDS="cuda cpu"
-RESOLUTIONS="1920x1080 2560x1440 3840x2160"
+PRESETS="fhd 2k 4k"
+
+resolve_resolution() {
+    case "$1" in
+        fhd) echo "1920 1080" ;;
+        2k)  echo "2560 1440" ;;
+        4k)  echo "3840 2160" ;;
+        6k)  echo "5760 3240" ;;
+    esac
+}
 
 run_bench() {
-    local backend=$1 width=$2 height=$3
+    local backend=$1 preset=$2
+    read -r width height <<< "$(resolve_resolution "$preset")"
     local use_cuda="true"
     [[ "$backend" == "cpu" ]] && use_cuda="false"
 
@@ -27,7 +37,7 @@ run_bench() {
 
     ZENOH_PID=""
     if ss -tlnH 2>/dev/null | grep -q ':7447 '; then
-        : # reuse existing router
+        :
     else
         $ZENOHD > /dev/null 2>&1 &
         ZENOH_PID=$!
@@ -65,10 +75,8 @@ run_bench() {
 }
 
 echo "resolution|transport|fps|latency_ms"
-for res in $RESOLUTIONS; do
-    width=${res%x*}
-    height=${res#*x}
+for preset in $PRESETS; do
     for backend in $BACKENDS; do
-        run_bench "$backend" "$width" "$height"
+        run_bench "$backend" "$preset"
     done
 done

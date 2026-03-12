@@ -3,7 +3,9 @@
 
 #include <torch/torch.h>
 #include <c10/cuda/CUDAStream.h>
+#include <c10/cuda/CUDACachingAllocator.h>
 #include <cuda_runtime.h>
+#include <chrono>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
@@ -21,11 +23,13 @@ public:
     this->declare_parameter<bool>("use_cuda", true);
     this->declare_parameter<int>("image_width", 1920);
     this->declare_parameter<int>("image_height", 1080);
+    this->declare_parameter<bool>("wallclock", false);
     int rate_ms = this->get_parameter("publish_rate_ms").as_int();
     if (rate_ms <= 0) rate_ms = 1;
     use_cuda_ = this->get_parameter("use_cuda").as_bool();
     width_ = this->get_parameter("image_width").as_int();
     height_ = this->get_parameter("image_height").as_int();
+    wallclock_ = this->get_parameter("wallclock").as_bool();
 
     renderer_ = std::make_unique<RobotArmRenderer>(width_, height_, torch::kCUDA);
 
@@ -36,9 +40,10 @@ public:
       std::bind(&RendererNode::timer_callback, this));
 
     RCLCPP_INFO(this->get_logger(),
-      "Robot arm renderer started (%dx%d, %.1f MB, timer=%dms, transport=%s)",
+      "Robot arm renderer started (%dx%d, %.1f MB, timer=%dms, transport=%s, timestep=%s)",
       width_, height_, width_ * height_ * 4 / 1e6,
-      rate_ms, use_cuda_ ? "cuda" : "cpu");
+      rate_ms, use_cuda_ ? "cuda" : "cpu",
+      wallclock_ ? "wallclock" : "fixed");
   }
 
 private:
@@ -46,7 +51,16 @@ private:
   {
     auto guard = torch_buffer_backend::set_stream();
 
-    constexpr float dt = 1.0f / 60.0f;
+    float dt;
+    if (wallclock_) {
+      auto now = std::chrono::steady_clock::now();
+      dt = last_frame_time_.time_since_epoch().count() == 0
+        ? 1.0f / 60.0f
+        : std::chrono::duration<float>(now - last_frame_time_).count();
+      last_frame_time_ = now;
+    } else {
+      dt = 1.0f / 60.0f;
+    }
 
     sensor_msgs::msg::Image msg;
     if (use_cuda_) {
@@ -78,13 +92,16 @@ private:
     }
 
     publisher_->publish(msg);
+    c10::cuda::CUDACachingAllocator::emptyCache();
   }
 
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
   rclcpp::TimerBase::SharedPtr timer_;
   bool use_cuda_;
+  bool wallclock_;
   int width_, height_;
   std::unique_ptr<RobotArmRenderer> renderer_;
+  std::chrono::steady_clock::time_point last_frame_time_{};
 };
 
 RCLCPP_COMPONENTS_REGISTER_NODE(RendererNode)

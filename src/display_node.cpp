@@ -30,9 +30,17 @@ public:
     this->declare_parameter<bool>("headless", false);
     this->declare_parameter<bool>("use_cuda", true);
     this->declare_parameter<std::string>("record_path", "");
+    this->declare_parameter<int>("window_x", -1);
+    this->declare_parameter<int>("window_y", -1);
+    this->declare_parameter<int>("max_window_width", 1920);
+    this->declare_parameter<int>("max_window_height", 1080);
     headless_ = this->get_parameter("headless").as_bool();
     use_cuda_ = this->get_parameter("use_cuda").as_bool();
     record_path_ = this->get_parameter("record_path").as_string();
+    win_x_ = static_cast<int>(this->get_parameter("window_x").as_int());
+    win_y_ = static_cast<int>(this->get_parameter("window_y").as_int());
+    max_win_w_ = static_cast<int>(this->get_parameter("max_window_width").as_int());
+    max_win_h_ = static_cast<int>(this->get_parameter("max_window_height").as_int());
 
     auto qos = rclcpp::QoS(1).reliable();
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -64,7 +72,7 @@ private:
     img_width_ = w;
     img_height_ = h;
     display_ = std::make_unique<FrameDisplay>();
-    if (!display_->init(w, h, headless_, use_cuda_, false, 1920, 1080)) {
+    if (!display_->init(w, h, headless_, use_cuda_, false, max_win_w_, max_win_h_, win_x_, win_y_)) {
       RCLCPP_WARN(this->get_logger(), "Display init failed, falling back to headless");
       headless_ = true;
     }
@@ -131,8 +139,9 @@ private:
       headless_ ? "headless" : (use_cuda_ ? "cuda" : "cpu"));
     if (display_ && display_->window()) {
       char title[128];
-      snprintf(title, sizeof(title), "Display -- %.1f fps | %dx%d (%.1f MB)",
-        fps, img_width_, img_height_, img_width_ * img_height_ * 4 / 1e6);
+      snprintf(title, sizeof(title), "%s -- %.1f fps | latency %.1f ms | %dx%d (%.1f MB)",
+        use_cuda_ ? "CUDA" : "CPU",
+        fps, latency_ms, img_width_, img_height_, img_width_ * img_height_ * 4 / 1e6);
       SDL_SetWindowTitle(display_->window(), title);
     }
     frame_count_ = 0;
@@ -171,6 +180,8 @@ private:
   std::chrono::steady_clock::time_point last_record_time_{};
 
   int img_width_{0}, img_height_{0};
+  int win_x_, win_y_;
+  int max_win_w_, max_win_h_;
   bool use_cuda_;
   bool headless_;
   std::unique_ptr<FrameDisplay> display_;

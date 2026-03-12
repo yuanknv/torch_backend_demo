@@ -39,11 +39,18 @@ pixi run bash src/torch_backend_demo/launch/demo.sh
 Options:
 
 ```
---width WIDTH       Image width (default: 1920)
---height HEIGHT     Image height (default: 1080)
+--resolution RES    fhd (default), 2k, 4k, 6k
 --backend BACKEND   cuda or cpu (default: cuda)
---rate RATE_MS      Publish timer period in ms (default: 4)
 --record PATH       Record video to MP4 file (requires ffmpeg)
+--wallclock         Use wall-clock timestep (default: fixed 1/60s)
+--compare           Side-by-side CUDA vs CPU comparison (two windows)
+--headless          Run without display windows
+```
+
+Side-by-side comparison at 2K:
+
+```bash
+pixi run bash src/torch_backend_demo/launch/demo.sh --compare --resolution 2k
 ```
 
 ## Test
@@ -70,14 +77,14 @@ pixi run bash src/torch_backend_demo/launch/bench_all.sh
 
 | Resolution | Image Size | Transport | FPS | E2E Latency | Speedup |
 |---|---|---|---:|---:|---:|
-| 1920x1080 | 7.9 MB | CUDA | 101.1 | 35.7 ms | 1.3x |
-| 1920x1080 | 7.9 MB | CPU | 79.5 | 24.7 ms | -- |
-| 2560x1440 | 14.1 MB | CUDA | 102.3 | 38.9 ms | 3.6x |
-| 2560x1440 | 14.1 MB | CPU | 28.1 | 100.5 ms | -- |
-| 3840x2160 | 31.6 MB | CUDA | 103.1 | 24.4 ms | 8.6x |
-| 3840x2160 | 31.6 MB | CPU | 12.0 | 241.0 ms | -- |
+| 1920x1080 | 7.9 MB | CUDA | 101.8 | 20.5 ms | 1.9x |
+| 1920x1080 | 7.9 MB | CPU | 54.1 | 36.5 ms | -- |
+| 2560x1440 | 14.1 MB | CUDA | 100.9 | 11.1 ms | 4.6x |
+| 2560x1440 | 14.1 MB | CPU | 22.0 | 73.5 ms | -- |
+| 3840x2160 | 31.6 MB | CUDA | 70.1 | 6.8 ms | 6.4x |
+| 3840x2160 | 31.6 MB | CPU | 10.9 | 185.5 ms | -- |
 
-The CUDA path maintains ~100 FPS across all resolutions because zero-copy IPC cost is nearly constant regardless of frame size. The CPU path must copy frames from GPU to host and serialise them through the middleware, so its throughput drops as image size grows. At 4K (31.6 MB/frame) the CUDA backend is ~8.6x faster than the raw CPU path.
+The CUDA path maintains high FPS across all resolutions because zero-copy IPC cost is nearly constant regardless of frame size. The CPU path must copy frames from GPU to host and serialise them through the middleware, so its throughput drops as image size grows. At 4K (31.6 MB/frame) the CUDA backend is ~6.4x faster than the raw CPU path.
 
 ## License
 

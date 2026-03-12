@@ -60,7 +60,7 @@ FrameDisplay::~FrameDisplay() {
 }
 
 bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, bool fullscreen,
-                        int max_win_w, int max_win_h) {
+                        int max_win_w, int max_win_h, int win_x, int win_y) {
     W_ = width;
     H_ = height;
 
@@ -71,6 +71,9 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
         winW = static_cast<int>(W_ * scale);
         winH = static_cast<int>(H_ * scale);
     }
+
+    int pos_x = (win_x >= 0) ? win_x : SDL_WINDOWPOS_CENTERED;
+    int pos_y = (win_y >= 0) ? win_y : SDL_WINDOWPOS_CENTERED;
 
     if (headless) {
         mode_ = DisplayMode::Headless;
@@ -94,7 +97,7 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
     if (fullscreen) win_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
     window_ = SDL_CreateWindow("Robot Arm Demo",
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        pos_x, pos_y,
         winW, winH, win_flags);
 
     if (!window_) {
@@ -103,7 +106,7 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
         Uint32 sw_flags = SDL_WINDOW_SHOWN;
         if (fullscreen) sw_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         window_ = SDL_CreateWindow("Robot Arm Demo",
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            pos_x, pos_y,
             winW, winH, sw_flags);
         if (!window_) {
             std::cerr << "SDL software window also failed" << std::endl;
