@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(tunnel_demo)
+project(torch_backend_demo)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -53,13 +53,13 @@ find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(GLEW REQUIRED)
 
-# Renderer node (publisher) -- RobotArmRenderer + font, LibTorch tensor ops
-add_library(tunnel_renderer_component SHARED
-  src/tunnel_renderer_node.cpp
+# Renderer node (publisher)
+add_library(renderer_component SHARED
+  src/renderer_node.cpp
   src/robot_arm.cpp
   src/font.cpp
 )
-target_link_libraries(tunnel_renderer_component
+target_link_libraries(renderer_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
   torch_buffer_backend::torch_buffer_backend
@@ -70,24 +70,24 @@ target_link_libraries(tunnel_renderer_component
   CUDA::cudart
   CUDA::cuda_driver
 )
-target_compile_options(tunnel_renderer_component PRIVATE ${TORCH_CXX_FLAGS})
-rclcpp_components_register_node(tunnel_renderer_component
-  PLUGIN "TunnelRenderer"
-  EXECUTABLE tunnel_renderer_node
+target_compile_options(renderer_component PRIVATE ${TORCH_CXX_FLAGS})
+rclcpp_components_register_node(renderer_component
+  PLUGIN "RendererNode"
+  EXECUTABLE renderer_node
 )
-install(TARGETS tunnel_renderer_component
+install(TARGETS renderer_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
 # Display node (subscriber, SDL2/GLEW/OpenGL + CUDA-GL interop)
-add_library(tunnel_display_component SHARED
-  src/tunnel_display_node.cpp
+add_library(display_component SHARED
+  src/display_node.cpp
   src/display.cpp
 )
-target_compile_definitions(tunnel_display_component PRIVATE USE_CUDA_GL_INTEROP)
-target_link_libraries(tunnel_display_component
+target_compile_definitions(display_component PRIVATE USE_CUDA_GL_INTEROP)
+target_link_libraries(display_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
   torch_buffer_backend::torch_buffer_backend
@@ -101,20 +101,20 @@ target_link_libraries(tunnel_display_component
   SDL2::SDL2
   GLEW::GLEW
 )
-target_compile_options(tunnel_display_component PRIVATE ${TORCH_CXX_FLAGS})
-rclcpp_components_register_node(tunnel_display_component
-  PLUGIN "TunnelDisplay"
-  EXECUTABLE tunnel_display_node
+target_compile_options(display_component PRIVATE ${TORCH_CXX_FLAGS})
+rclcpp_components_register_node(display_component
+  PLUGIN "DisplayNode"
+  EXECUTABLE display_node
 )
-install(TARGETS tunnel_display_component
+install(TARGETS display_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
 # Launch test
-add_launch_test(test/test_tunnel_demo_launch.py
-  TARGET test_tunnel_demo_launch
+add_launch_test(test/test_launch.py
+  TARGET test_launch
   TIMEOUT 60
 )
 

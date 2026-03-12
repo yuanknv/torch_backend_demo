@@ -4,13 +4,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS_ROOT="${PIXI_PROJECT_ROOT:-$SCRIPT_DIR}"
 
-. "$WS_ROOT/build/tunnel_demo/colcon_command_prefix_build.sh"
+. "$WS_ROOT/build/torch_backend_demo/colcon_command_prefix_build.sh"
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-export LD_LIBRARY_PATH="$WS_ROOT/build/tunnel_demo:$WS_ROOT/install/tunnel_demo/lib:$WS_ROOT/.pixi/envs/default/libtorch/lib:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$WS_ROOT/build/torch_backend_demo:$WS_ROOT/install/torch_backend_demo/lib:$WS_ROOT/.pixi/envs/default/libtorch/lib:${LD_LIBRARY_PATH:-}"
 
 ZENOHD="$WS_ROOT/install/rmw_zenoh_cpp/lib/rmw_zenoh_cpp/rmw_zenohd"
-RENDERER="$WS_ROOT/build/tunnel_demo/tunnel_renderer_node"
-DISPLAY_NODE="$WS_ROOT/build/tunnel_demo/tunnel_display_node"
+RENDERER="$WS_ROOT/build/torch_backend_demo/renderer_node"
+DISPLAY_NODE="$WS_ROOT/build/torch_backend_demo/display_node"
 
 RUN_SECONDS=15
 

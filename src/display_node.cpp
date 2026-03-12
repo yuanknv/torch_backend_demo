@@ -18,11 +18,11 @@
 #include "display.h"
 #include <SDL.h>
 
-class TunnelDisplay : public rclcpp::Node
+class DisplayNode : public rclcpp::Node
 {
 public:
-  explicit TunnelDisplay(const rclcpp::NodeOptions & options)
-  : Node("tunnel_display", options),
+  explicit DisplayNode(const rclcpp::NodeOptions & options)
+  : Node("display", options),
     frame_count_(0),
     fps_timer_(std::chrono::steady_clock::now()),
     headless_(false)
@@ -34,22 +34,22 @@ public:
     use_cuda_ = this->get_parameter("use_cuda").as_bool();
     record_path_ = this->get_parameter("record_path").as_string();
 
-    auto qos = rclcpp::QoS(1).best_effort();
+    auto qos = rclcpp::QoS(1).reliable();
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "tunnel_image", qos,
-      std::bind(&TunnelDisplay::image_callback, this, std::placeholders::_1));
+      "image", qos,
+      std::bind(&DisplayNode::image_callback, this, std::placeholders::_1));
 
     if (!headless_) {
       event_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(4),
-        std::bind(&TunnelDisplay::pump_events, this));
+        std::bind(&DisplayNode::pump_events, this));
     }
 
     RCLCPP_INFO(this->get_logger(), "Display started (%s, waiting for first frame)",
       headless_ ? "headless" : (use_cuda_ ? "CUDA-GL interop" : "OpenGL"));
   }
 
-  ~TunnelDisplay() override
+  ~DisplayNode() override
   {
     if (ffmpeg_pipe_) {
       pclose(ffmpeg_pipe_);
@@ -176,12 +176,12 @@ private:
   std::unique_ptr<FrameDisplay> display_;
 };
 
-RCLCPP_COMPONENTS_REGISTER_NODE(TunnelDisplay)
+RCLCPP_COMPONENTS_REGISTER_NODE(DisplayNode)
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<TunnelDisplay>(rclcpp::NodeOptions());
+  auto node = std::make_shared<DisplayNode>(rclcpp::NodeOptions());
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.spin();

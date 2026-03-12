@@ -11,11 +11,11 @@
 #include "torch_buffer/torch_buffer.hpp"
 #include "robot_arm.h"
 
-class TunnelRenderer : public rclcpp::Node
+class RendererNode : public rclcpp::Node
 {
 public:
-  explicit TunnelRenderer(const rclcpp::NodeOptions & options)
-  : Node("tunnel_renderer", options)
+  explicit RendererNode(const rclcpp::NodeOptions & options)
+  : Node("renderer", options)
   {
     this->declare_parameter<int>("publish_rate_ms", 1);
     this->declare_parameter<bool>("use_cuda", true);
@@ -29,11 +29,11 @@ public:
 
     renderer_ = std::make_unique<RobotArmRenderer>(width_, height_, torch::kCUDA);
 
-    auto qos = rclcpp::QoS(1).best_effort();
-    publisher_ = this->create_publisher<sensor_msgs::msg::Image>("tunnel_image", qos);
+    auto qos = rclcpp::QoS(1).reliable();
+    publisher_ = this->create_publisher<sensor_msgs::msg::Image>("image", qos);
     timer_ = this->create_wall_timer(
       std::chrono::milliseconds(rate_ms),
-      std::bind(&TunnelRenderer::timer_callback, this));
+      std::bind(&RendererNode::timer_callback, this));
 
     RCLCPP_INFO(this->get_logger(),
       "Robot arm renderer started (%dx%d, %.1f MB, timer=%dms, transport=%s)",
@@ -55,7 +55,7 @@ private:
     }
 
     msg.header.stamp = this->now();
-    msg.header.frame_id = "tunnel";
+    msg.header.frame_id = "render";
     msg.height = height_;
     msg.width = width_;
     msg.encoding = "bgra8";
@@ -87,12 +87,12 @@ private:
   std::unique_ptr<RobotArmRenderer> renderer_;
 };
 
-RCLCPP_COMPONENTS_REGISTER_NODE(TunnelRenderer)
+RCLCPP_COMPONENTS_REGISTER_NODE(RendererNode)
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<TunnelRenderer>(rclcpp::NodeOptions());
+  auto node = std::make_shared<RendererNode>(rclcpp::NodeOptions());
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.spin();

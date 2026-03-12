@@ -28,9 +28,9 @@ def generate_test_description():
     use_cuda_arg = DeclareLaunchArgument('use_cuda', default_value='true')
 
     renderer_node = Node(
-        package='tunnel_demo',
-        executable='tunnel_renderer_node',
-        name='tunnel_renderer',
+        package='torch_backend_demo',
+        executable='renderer_node',
+        name='renderer',
         output='screen',
         parameters=[{
             'image_width': LaunchConfiguration('width'),
@@ -40,9 +40,9 @@ def generate_test_description():
     )
 
     display_node = Node(
-        package='tunnel_demo',
-        executable='tunnel_display_node',
-        name='tunnel_display',
+        package='torch_backend_demo',
+        executable='display_node',
+        name='display',
         output='screen',
         parameters=[{'headless': True}],
     )
@@ -83,7 +83,7 @@ def generate_test_description():
     ])
 
 
-class TestTunnelDemo(unittest.TestCase):
+class TestDemo(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -94,12 +94,12 @@ class TestTunnelDemo(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        self.node = rclpy.create_node('test_tunnel_demo')
+        self.node = rclpy.create_node('test_torch_backend_demo')
         self.frame_count = 0
         self.frame_timestamps = []
         self.node.create_subscription(
-            Image, 'tunnel_image', self._image_cb,
-            rclpy.qos.QoSProfile(depth=1, reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT))
+            Image, 'image', self._image_cb,
+            rclpy.qos.QoSProfile(depth=1, reliability=rclpy.qos.ReliabilityPolicy.RELIABLE))
 
     def tearDown(self):
         self.node.destroy_node()
@@ -108,7 +108,7 @@ class TestTunnelDemo(unittest.TestCase):
         self.frame_count += 1
         self.frame_timestamps.append(time.time())
 
-    def test_tunnel_pubsub(self):
+    def test_pubsub(self):
         start = time.time()
         while time.time() - start < 12.0:
             rclpy.spin_once(self.node, timeout_sec=0.1)
@@ -124,7 +124,7 @@ class TestTunnelDemo(unittest.TestCase):
 
 
 @launch_testing.post_shutdown_test()
-class TestTunnelDemoShutdown(unittest.TestCase):
+class TestDemoShutdown(unittest.TestCase):
 
     def test_exit_codes(self, proc_info):
         launch_testing.asserts.assertExitCodes(

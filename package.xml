@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>tunnel_demo</name>
+  <name>torch_backend_demo</name>
   <version>0.1.0</version>
   <description>
-    Tunnel effect demo: CUDA kernel renders into a PyTorch tensor,
-    published via torch_buffer_backend, received and displayed by a second node.
+    Torch buffer backend demo: GPU-rendered frames published via
+    torch_buffer_backend zero-copy transport, received and displayed
+    by a second node.
   </description>
 
   <maintainer email="yuankunz@nvidia.com">Yuankun Zhu</maintainer>

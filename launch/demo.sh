@@ -64,16 +64,13 @@ if [[ "$BACKEND" == "cpu" ]]; then
     USE_CUDA="false"
 fi
 
-. "$WS_ROOT/build/tunnel_demo/colcon_command_prefix_build.sh"
+. "$WS_ROOT/build/torch_backend_demo/colcon_command_prefix_build.sh"
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-# Ensure the build and install lib directories are visible to the loader so
-# plugin libraries (component .so files) can be found when running build
-# executables from the build directory.
-export LD_LIBRARY_PATH="$WS_ROOT/build/tunnel_demo:$WS_ROOT/install/tunnel_demo/lib:$WS_ROOT/.pixi/envs/default/libtorch/lib:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$WS_ROOT/build/torch_backend_demo:$WS_ROOT/install/torch_backend_demo/lib:$WS_ROOT/.pixi/envs/default/libtorch/lib:${LD_LIBRARY_PATH:-}"
 
 ZENOHD="$WS_ROOT/install/rmw_zenoh_cpp/lib/rmw_zenoh_cpp/rmw_zenohd"
-RENDERER="$WS_ROOT/build/tunnel_demo/tunnel_renderer_node"
-DISPLAY_NODE="$WS_ROOT/build/tunnel_demo/tunnel_display_node"
+RENDERER="$WS_ROOT/build/torch_backend_demo/renderer_node"
+DISPLAY_NODE="$WS_ROOT/build/torch_backend_demo/display_node"
 
 cleanup() {
     kill -INT $DISPLAY_PID $RENDERER_PID 2>/dev/null
@@ -95,7 +92,7 @@ else
     sleep 1
 fi
 
-echo "Starting tunnel renderer (publisher)..."
+echo "Starting renderer (publisher)..."
 echo "  Resolution: ${WIDTH}x${HEIGHT}"
 echo "  Backend: $BACKEND"
 echo "  Rate: ${PUBLISH_RATE}ms"
@@ -109,9 +106,9 @@ RENDERER_PID=$!
 DISPLAY_ARGS=""
 if [[ -n "$RECORD_PATH" ]]; then
     DISPLAY_ARGS="--ros-args -p record_path:=$RECORD_PATH"
-    echo "Starting tunnel display (subscriber, recording to $RECORD_PATH)..."
+    echo "Starting display (subscriber, recording to $RECORD_PATH)..."
 else
-    echo "Starting tunnel display (subscriber)..."
+    echo "Starting display (subscriber)..."
 fi
 $DISPLAY_NODE $DISPLAY_ARGS &
 DISPLAY_PID=$!

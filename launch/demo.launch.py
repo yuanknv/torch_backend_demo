@@ -11,16 +11,16 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     renderer_node = Node(
-        package='tunnel_demo',
-        executable='tunnel_renderer_node',
-        name='tunnel_renderer',
+        package='torch_backend_demo',
+        executable='renderer_node',
+        name='renderer',
         output='screen',
     )
 
     display_node = Node(
-        package='tunnel_demo',
-        executable='tunnel_display_node',
-        name='tunnel_display',
+        package='torch_backend_demo',
+        executable='display_node',
+        name='display',
         output='screen',
     )
 
