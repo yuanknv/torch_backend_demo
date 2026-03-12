@@ -70,7 +70,7 @@ private:
     img_width_ = w;
     img_height_ = h;
     display_ = std::make_unique<FrameDisplay>();
-    if (!display_->init(w, h, headless_, use_cuda_)) {
+    if (!display_->init(w, h, headless_, use_cuda_, false, 1920, 1080)) {
       RCLCPP_WARN(this->get_logger(), "Display init failed, falling back to headless");
       headless_ = true;
     }
@@ -142,8 +142,13 @@ private:
     auto guard = torch_buffer_backend::set_stream();
     auto t0 = std::chrono::steady_clock::now();
     const rosidl::Buffer<uint8_t> & data = msg->data;
-    at::Tensor tensor = torch_buffer_backend::from_buffer(data);
-    at::Tensor frame = tensor.reshape({h, w, 4});
+    at::Tensor frame;
+    if (data.get_backend_type() == "torch") {
+      frame = torch_buffer_backend::from_buffer(data).reshape({h, w, 4});
+    } else {
+      frame = torch::from_blob(
+        const_cast<uint8_t *>(data.data()), {h, w, 4}, torch::kByte);
+    }
     auto t1 = std::chrono::steady_clock::now();
 
     if (!headless_ && display_) {
@@ -190,12 +195,12 @@ private:
         total_cb_sum_us_ / n,
         from_buf_sum_us_ / n, display_sum_us_ / n, publish_sum_us_ / n,
         gap_sum_us_ / n,
-        headless_ ? "headless" : "GPU direct");
+        headless_ ? "headless" : (use_cuda_ ? "cuda" : "cpu"));
       if (display_ && display_->window()) {
         char title[128];
         double mb = img_width_ * img_height_ * 4 / 1e6;
         snprintf(title, sizeof(title),
-          "Tunnel Display -- %.1f fps | %dx%d (%.1f MB)",
+          "Display -- %.1f fps | %dx%d (%.1f MB)",
           fps, img_width_, img_height_, mb);
         SDL_SetWindowTitle(display_->window(), title);
       }

@@ -12,7 +12,8 @@ public:
     FrameDisplay();
     ~FrameDisplay();
 
-    bool init(int width, int height, bool headless, bool use_cuda, bool fullscreen = false);
+    bool init(int width, int height, bool headless, bool use_cuda, bool fullscreen = false,
+              int max_win_w = 0, int max_win_h = 0);
     void present(const torch::Tensor& frame);
     bool poll_events(); // returns false if quit requested
 

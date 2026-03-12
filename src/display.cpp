@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <algorithm>
 #include <iostream>
 #include <cstdio>
 
@@ -58,9 +59,18 @@ FrameDisplay::~FrameDisplay() {
     SDL_Quit();
 }
 
-bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, bool fullscreen) {
+bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, bool fullscreen,
+                        int max_win_w, int max_win_h) {
     W_ = width;
     H_ = height;
+
+    int winW = W_, winH = H_;
+    if (max_win_w > 0 && max_win_h > 0 && (W_ > max_win_w || H_ > max_win_h)) {
+        float scale = std::min(static_cast<float>(max_win_w) / W_,
+                               static_cast<float>(max_win_h) / H_);
+        winW = static_cast<int>(W_ * scale);
+        winH = static_cast<int>(H_ * scale);
+    }
 
     if (headless) {
         mode_ = DisplayMode::Headless;
@@ -85,7 +95,7 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
 
     window_ = SDL_CreateWindow("Robot Arm Demo",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        W_, H_, win_flags);
+        winW, winH, win_flags);
 
     if (!window_) {
         std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
@@ -94,7 +104,7 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
         if (fullscreen) sw_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         window_ = SDL_CreateWindow("Robot Arm Demo",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            W_, H_, sw_flags);
+            winW, winH, sw_flags);
         if (!window_) {
             std::cerr << "SDL software window also failed" << std::endl;
             mode_ = DisplayMode::Headless;
@@ -126,7 +136,7 @@ bool FrameDisplay::init(int width, int height, bool headless, bool use_cuda, boo
         return true;
     }
 
-    SDL_GL_SetSwapInterval(1); // vsync
+    SDL_GL_SetSwapInterval(1);
 
     std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
     std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;

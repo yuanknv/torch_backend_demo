@@ -15,7 +15,7 @@ DISPLAY_NODE="$WS_ROOT/build/tunnel_demo/tunnel_display_node"
 RUN_SECONDS=15
 
 BACKENDS="cuda cpu"
-RESOLUTIONS="1280x720 1920x1080 2560x1440"
+RESOLUTIONS="1920x1080 2560x1440 3840x2160"
 
 run_bench() {
     local backend=$1 width=$2 height=$3

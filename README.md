@@ -1,17 +1,26 @@
 # tunnel_demo
 
-A ROS 2 demo that renders an animated neon-ring tunnel on the GPU via LibTorch tensor ops, publishes frames through the `torch_buffer_backend` zero-copy transport, and displays them in a GLFW window using CUDA-OpenGL interop.
+A ROS 2 demo that renders an SDF-based pencil-sketch robot arm animation entirely on the GPU via LibTorch tensor ops, publishes BGRA frames as `sensor_msgs/msg/Image`, and displays them in an SDL2/OpenGL window with CUDA-GL interop.
+
+Two transport modes are compared:
+
+- **cuda** -- uses the `torch_buffer_backend` with CUDA IPC for zero-copy GPU-to-GPU frame transport between processes.
+- **cpu** -- publishes raw `sensor_msgs/msg/Image` data (GPU render, then `cudaMemcpy` to host, serialised via standard ROS 2 middleware). No buffer backend is involved.
+
+Both modes render on the GPU. The only difference is the transport path, making this a clean comparison of zero-copy CUDA IPC vs traditional CPU-serialised image transport.
+
+Animation is frame-count driven (fixed dt = 1/60 s per frame), so low FPS results in slower but smooth playback rather than frame skipping.
 
 The demo exercises the full buffer-aware pub/sub pipeline:
 
-1. **tunnel_renderer_node** -- renders RGB frames on the GPU using pure LibTorch tensor operations and publishes them as `sensor_msgs/msg/Image` using either CUDA IPC (zero-copy) or CPU (memcpy) transport.
-2. **tunnel_display_node** -- subscribes, displays frames in an OpenGL window (or runs headless), and publishes FPS / end-to-end latency metrics.
+1. **tunnel_renderer_node** -- renders BGRA frames on the GPU using LibTorch SDF operations and publishes them as `sensor_msgs/msg/Image` via either CUDA IPC or raw CPU transport.
+2. **tunnel_display_node** -- subscribes, displays frames in an SDL2/OpenGL window (with CUDA-GL interop for the CUDA path, or CPU texture upload for the raw path), and reports FPS / end-to-end latency.
 
 ## Dependencies
 
 - [rcl_buffer_ws](https://github.com/yuankunz/rcl_buffer_ws) workspace with `pixi`
 - `cuda_buffer_backend` and `torch_buffer_backend` packages (cloned via `vcs import`)
-- CUDA toolkit, libtorch, GLFW, OpenGL
+- CUDA toolkit, libtorch, SDL2, GLEW, OpenGL
 
 ## Build
 
@@ -61,14 +70,14 @@ pixi run bash src/tunnel_demo/launch/bench_all.sh
 
 | Resolution | Image Size | Transport | FPS | E2E Latency | Speedup |
 |---|---|---|---:|---:|---:|
-| 1280x720 | 2.8 MB | CUDA | 103.1 | 18.2 ms | 20x |
-| 1280x720 | 2.8 MB | CPU | 5.1 | 220.1 ms | -- |
-| 1920x1080 | 6.2 MB | CUDA | 102.2 | 18.9 ms | 51x |
-| 1920x1080 | 6.2 MB | CPU | 2.0 | 565.2 ms | -- |
-| 2560x1440 | 11.1 MB | CUDA | 76.4 | 15.6 ms | 76x |
-| 2560x1440 | 11.1 MB | CPU | 1.0 | 1124.2 ms | -- |
+| 1920x1080 | 7.9 MB | CUDA | 101.9 | 19.3 ms | 1.4x |
+| 1920x1080 | 7.9 MB | CPU | 72.2 | 26.1 ms | -- |
+| 2560x1440 | 14.1 MB | CUDA | 101.0 | 24.3 ms | 3.8x |
+| 2560x1440 | 14.1 MB | CPU | 26.4 | 108.4 ms | -- |
+| 3840x2160 | 31.6 MB | CUDA | 103.5 | 40.9 ms | 9.2x |
+| 3840x2160 | 31.6 MB | CPU | 11.3 | 259.4 ms | -- |
 
-The CUDA-vs-CPU speedup grows with resolution because the zero-copy transport cost is constant while CPU memcpy scales linearly with image size. At 2K the CUDA backend is 76x faster than CPU. The absolute CUDA FPS is bounded by the GPU render time (LibTorch tensor ops), which scales with pixel count.
+The CUDA path maintains ~100 FPS across all resolutions because zero-copy IPC cost is nearly constant regardless of frame size. The CPU path must copy frames from GPU to host and serialise them through the middleware, so its throughput drops as image size grows. At 4K (31.6 MB/frame) the CUDA backend is over 9x faster than the raw CPU path.
 
 ## License
 
