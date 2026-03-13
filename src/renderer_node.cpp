@@ -62,7 +62,7 @@ private:
     at::Tensor frame = renderer_->render_frame();
 
     if (use_cuda_) {
-      torch_buffer_backend::to_buffer(frame, msg.data);
+      torch_buffer_backend::to_buffer(msg.data, frame);
     } else {
       size_t nbytes = static_cast<size_t>(height_) * width_ * 4;
       msg.data.resize(nbytes);
