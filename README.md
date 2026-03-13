@@ -70,14 +70,14 @@ pixi run bash src/torch_backend_demo/launch/bench_all.sh
 
 | Resolution | Image Size | Transport | FPS | Speedup |
 |---|---|---|---:|---:|
-| 1920x1080 | 7.9 MB | CUDA | 101.8 | 3.4x |
-| 1920x1080 | 7.9 MB | CPU | 30.0 | -- |
-| 2560x1440 | 14.1 MB | CUDA | 101.3 | 7.1x |
-| 2560x1440 | 14.1 MB | CPU | 14.3 | -- |
-| 3840x2160 | 31.6 MB | CUDA | 65.8 | 10.3x |
-| 3840x2160 | 31.6 MB | CPU | 6.4 | -- |
+| 1920x1080 | 7.9 MB | CUDA | 101.2 | 3.5x |
+| 1920x1080 | 7.9 MB | CPU | 28.9 | -- |
+| 2560x1440 | 14.1 MB | CUDA | 102.2 | 7.9x |
+| 2560x1440 | 14.1 MB | CPU | 12.9 | -- |
+| 3840x2160 | 31.6 MB | CUDA | 71.2 | 11.9x |
+| 3840x2160 | 31.6 MB | CPU | 6.0 | -- |
 
-The CUDA path maintains high throughput across resolutions because zero-copy IPC transfers only a handle, not the pixel data. The CPU path must copy frames from GPU to host and serialise them through the middleware, so throughput drops as image size grows. At 4K (31.6 MB/frame) the CUDA backend is ~10x faster than the raw CPU path.
+The CUDA path maintains high throughput across resolutions because zero-copy IPC transfers only a handle, not the pixel data. The CPU path must copy frames from GPU to host and serialise them through the middleware, so throughput drops as image size grows. At 4K (31.6 MB/frame) the CUDA backend is ~12x faster than the raw CPU path.
 
 ## License
 
