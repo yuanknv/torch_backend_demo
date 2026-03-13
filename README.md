@@ -18,8 +18,8 @@ The demo exercises the full buffer-aware pub/sub pipeline:
 
 ## Dependencies
 
-- [rcl_buffer_ws](https://github.com/yuankunz/rcl_buffer_ws) workspace with `pixi`
-- `cuda_buffer_backend` and `torch_buffer_backend` packages (cloned via `vcs import`)
+- [rcl_buffer_ws](https://github.com/yuanknv/ros2) workspace with `pixi`
+- `cuda_buffer_backend` and `torch_buffer_backend` packages
 - CUDA toolkit, libtorch, SDL2, GLEW, OpenGL
 
 ## Build
@@ -46,7 +46,7 @@ Options:
 --headless          Run without display windows
 ```
 
-Side-by-side comparison at QHD:
+Side-by-side comparison at QHD (featured in the announcement blog):
 
 ```bash
 pixi run bash src/torch_backend_demo/launch/demo.sh --compare --resolution qhd
