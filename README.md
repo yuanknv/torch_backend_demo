@@ -52,7 +52,7 @@ Side-by-side comparison at QHD (featured in the announcement blog):
 pixi run bash src/torch_backend_demo/launch/demo.sh --compare --resolution qhd
 ```
 
-**Note:** Compare mode launches four GPU processes (two renderers + two displays). This requires at least 7 GB of GPU memory.
+**Note:** Compare mode launches four GPU processes (two renderers + two displays). This requires at least 6 GB of GPU memory.
 
 ## Benchmark results
 
