@@ -843,5 +843,5 @@ torch::Tensor RobotArmRenderer::render_frame() {
     frame = torch::clamp(frame, 0.0f, 255.0f);
     auto alpha_channel = torch::full({H_, W_, 1}, 255.0f, opts);
     frame = torch::cat({frame, alpha_channel}, 2);
-    return frame.to(torch::kUInt8);
+    return frame.to(torch::kUInt8).contiguous();
 }
