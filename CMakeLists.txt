@@ -14,8 +14,6 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(torch_buffer REQUIRED)
 find_package(torch_buffer_backend REQUIRED)
-find_package(cuda_buffer_backend REQUIRED)
-find_package(cuda_buffer REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 if(NOT CMAKE_CUDA_COMPILER)
   if(CUDA_NVCC_EXECUTABLE)
@@ -31,20 +29,6 @@ if(NOT DEFINED CMAKE_CUDA_HOST_COMPILER AND DEFINED CMAKE_CXX_COMPILER)
   set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}")
 endif()
 
-set(LIBTORCH_ROOT "$ENV{PIXI_PROJECT_ROOT}/.pixi/envs/default/libtorch")
-if(EXISTS "${LIBTORCH_ROOT}/share/cmake/Torch/TorchConfig.cmake")
-  list(APPEND CMAKE_PREFIX_PATH "${LIBTORCH_ROOT}")
-else()
-  execute_process(
-    COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix_path)"
-    OUTPUT_VARIABLE TORCH_CMAKE_PREFIX
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE TORCH_PYTHON_RESULT
-  )
-  if(TORCH_PYTHON_RESULT EQUAL 0 AND TORCH_CMAKE_PREFIX)
-    list(APPEND CMAKE_PREFIX_PATH "${TORCH_CMAKE_PREFIX}")
-  endif()
-endif()
 find_package(Torch REQUIRED)
 
 find_package(rclcpp_components REQUIRED)
@@ -64,7 +48,6 @@ target_link_libraries(renderer_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
   torch_buffer_backend::torch_buffer_backend
-  cuda_buffer::cuda_buffer
   rclcpp::rclcpp
   rclcpp_components::component
   ${sensor_msgs_TARGETS}
@@ -93,7 +76,6 @@ target_link_libraries(display_component
   ${TORCH_LIBRARIES}
   torch_buffer::torch_buffer
   torch_buffer_backend::torch_buffer_backend
-  cuda_buffer::cuda_buffer
   rclcpp::rclcpp
   rclcpp_components::component
   ${sensor_msgs_TARGETS}

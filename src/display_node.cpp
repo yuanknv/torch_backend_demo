@@ -14,7 +14,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "torch_buffer/torch_buffer.hpp"
+#include "torch_buffer/torch_buffer_api.hpp"
 #include "display.h"
 #include "font.h"
 #include <SDL.h>
