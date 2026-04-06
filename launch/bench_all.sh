@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS_ROOT="${PIXI_PROJECT_ROOT:-$SCRIPT_DIR}"
 
 . "$WS_ROOT/build/torch_backend_demo/colcon_command_prefix_build.sh"
-export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export LD_LIBRARY_PATH="$WS_ROOT/build/torch_backend_demo:$WS_ROOT/install/torch_backend_demo/lib:$WS_ROOT/.pixi/envs/default/libtorch/lib:${LD_LIBRARY_PATH:-}"
 
 ZENOHD="$WS_ROOT/install/rmw_zenoh_cpp/lib/rmw_zenoh_cpp/rmw_zenohd"
@@ -39,13 +39,6 @@ run_bench() {
     logfile=$(mktemp /tmp/bench_display_XXXXXX.log)
 
     ZENOH_PID=""
-    if ss -tlnH 2>/dev/null | grep -q ':7447 '; then
-        :
-    else
-        $ZENOHD > /dev/null 2>&1 &
-        ZENOH_PID=$!
-        sleep 1
-    fi
 
     $RENDERER --ros-args \
         -p image_width:=$width \
